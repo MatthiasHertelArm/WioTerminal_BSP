@@ -1,0 +1,64 @@
+name: Build examples
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CMSIS_PACK_ROOT: ${{ github.workspace }}/.packs
+
+jobs:
+  build:
+    name: Build Blinky (GCC)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install xmllint and dos2unix for gen-pack
+        run: sudo apt-get update && sudo apt-get install -y libxml2-utils dos2unix
+
+      - name: Install CMSIS-Toolbox, GCC, CMake and Ninja
+        uses: ARM-software/cmsis-actions/vcpkg@v1
+        with:
+          config: ./vcpkg-configuration.json
+
+      - name: Initialize the pack root
+        run: cpackget init --pack-root "${CMSIS_PACK_ROOT}" https://www.keil.com/pack/index.pidx
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # cmsis-knowledge 0.1.0 from https://github.com/MatthiasHertelArm/cmsis-developer-assistant-tools
+      - name: Install the knowledge builder
+        run: >-
+          python3 -m pip install
+          "git+https://github.com/MatthiasHertelArm/cmsis-developer-assistant-tools.git@e1150bd7164d523e5549913caddd68959afd3be7"
+
+      - name: Generate the pack
+        run: ./gen_pack.sh
+
+      - name: Install the generated pack
+        run: cpackget add --pack-root "${CMSIS_PACK_ROOT}" --agree-embedded-license output/SeeedStudio.WioTerminal_BSP.*.pack
+
+      - name: Build Blinky
+        run: cbuild Examples/Blinky/Blinky.csolution.yml --packs --update-rte --toolchain GCC
+
+      - name: Upload images
+        uses: actions/upload-artifact@v4
+        with:
+          name: wio-terminal-examples
+          path: |
+            Examples/Blinky/out/Blinky/Wio-Terminal/*/Blinky.hex
+            Examples/Blinky/out/Blinky/Wio-Terminal/*/Blinky.elf

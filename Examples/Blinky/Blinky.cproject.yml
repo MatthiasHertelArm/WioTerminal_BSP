@@ -1,0 +1,30 @@
+# A project translates into one executable or library.
+project:
+
+  # List components to use for your application.
+  components:
+    - component: CMSIS:CORE
+    - component: Device:Startup
+    - component: CMSIS Driver:VIO:Board
+
+  # List of source groups and files added to a project or a layer.
+  groups:
+    - group: Documentation
+      files:
+        - file: README.md
+    - group: Source Files
+      files:
+        - file: Blinky.c
+
+  # The ATSAMD51P19A startup, system and linker files of the DFP differ per compiler but share their names:
+  # keep one RTE directory per compiler. The linker files there place the application at 0x00004000,
+  # behind the 16 KB UF2 boot loader.
+  rte:
+    base-dir: RTE/$Compiler$
+
+  # List executable file formats to be generated.
+  output:
+    type:
+      - elf
+      - hex
+      - map

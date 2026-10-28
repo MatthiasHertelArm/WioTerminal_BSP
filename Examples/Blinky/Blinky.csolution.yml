@@ -1,0 +1,43 @@
+# A solution is a collection of related projects that share same base configuration.
+solution:
+  created-for: CMSIS-Toolbox@2.12.0
+  cdefault:
+
+  # List of tested compilers that can be selected
+  select-compiler:
+    - compiler: AC6
+    - compiler: GCC
+
+  # List the packs that define the device and/or board.
+  packs:
+    - pack: SeeedStudio::WioTerminal_BSP@^0.1.0
+    - pack: Microchip::SAMD51_DFP@^3.9.276
+    - pack: ARM::CMSIS@^6.0.0
+
+  # List different hardware targets that are used to deploy the solution.
+  target-types:
+    - type: Wio-Terminal
+      board: SeeedStudio::Wio-Terminal
+      target-set:
+        - set:
+          # Any CMSIS-DAP probe (for example ULINKplus) wired to the SWD test pads
+          debugger:
+            name: CMSIS-DAP@pyOCD
+            protocol: swd
+            clock: 2000000
+          images:
+            - project-context: Blinky.Debug
+
+  # List of different build configurations.
+  build-types:
+    - type: Debug
+      debug: on
+      optimize: debug
+
+    - type: Release
+      debug: off
+      optimize: balanced
+
+  # List related projects.
+  projects:
+    - project: Blinky.cproject.yml

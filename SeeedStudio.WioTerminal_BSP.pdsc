@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package schemaVersion="1.7.44" xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" xs:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Open-CMSIS-Pack/Open-CMSIS-Pack-Spec/v1.7.44/schema/PACK.xsd">
+  <name>WioTerminal_BSP</name>
+  <vendor>SeeedStudio</vendor>
+  <description overview="Documents/OVERVIEW.md">Seeed Studio Wio Terminal Board Support Pack (Microchip ATSAMD51P19A)</description>
+  <url>https://github.com/MatthiasHertelArm/WioTerminal_BSP/releases/download/v0.1.0/</url>
+  <repository type="git">https://github.com/MatthiasHertelArm/WioTerminal_BSP.git</repository>
+  <license>LICENSE</license>
+  <licenseSets>
+    <licenseSet id="all" default="true" gating="true">
+      <license title="Apache-2.0 License" name="LICENSE" spdx="Apache-2.0"/>
+    </licenseSet>
+  </licenseSets>
+
+  <releases>
+    <release version="0.1.0" date="2026-10-28">
+      Initial release.
+      - Board description for the Seeed Studio Wio Terminal (mounted ATSAMD51P19A, SWD test pads, on-board parts,
+        features, documentation links)
+      - Flash programming algorithm for the internal Flash with 8 KB sectors, so that the UF2 boot loader in the
+        first 16 KB stays untouched
+      - CMSIS-Driver VIO for the user LED, the buttons A, B, C and the 5-way switch
+      - Board Support GPIO: pin map of the on-board peripherals and GPIO helpers
+      - Example: Blinky (VIO) linked behind the boot loader at 0x00004000, csolution project for Arm Compiler 6 and GCC
+    </release>
+  </releases>
+
+  <keywords>
+    <keyword>Wio Terminal</keyword>
+    <keyword>Seeed Studio</keyword>
+    <keyword>ATSAMD51P19A</keyword>
+    <keyword>SAMD51</keyword>
+    <keyword>Board Support Pack</keyword>
+  </keywords>
+
+  <requirements>
+    <packages>
+      <package vendor="Microchip" name="SAMD51_DFP" version="3.9.276"/>
+      <package vendor="ARM"       name="CMSIS"      version="6.0.0-0"/>
+    </packages>
+  </requirements>
+
+  <conditions>
+    <!-- Board condition -->
+    <condition id="Wio-Terminal">
+      <description>Seeed Studio Wio Terminal board</description>
+      <require Bvendor="SeeedStudio" Bname="Wio-Terminal"/>
+    </condition>
+
+    <!-- Board condition + device startup -->
+    <condition id="Wio-Terminal Startup">
+      <description>Seeed Studio Wio Terminal board with ATSAMD51P19A device startup</description>
+      <require condition="Wio-Terminal"/>
+      <require Dvendor="Microchip:3" Dname="ATSAMD51P19A"/>
+      <require Cclass="Device" Cgroup="Startup"/>
+    </condition>
+  </conditions>
+
+  <components>
+    <!-- CMSIS-Driver VIO for the Wio Terminal -->
+    <component Cclass="CMSIS Driver" Cgroup="VIO" Csub="Board" Cversion="1.0.0" Capiversion="1.0.0" condition="Wio-Terminal Startup">
+      <description>Virtual I/O for the Wio Terminal: user LED (vioLED0), buttons A, B, C (vioBUTTON0..2), 5-way switch (vioJOY*)</description>
+      <RTE_Components_h>
+        #define RTE_VIO_BOARD
+        #define RTE_VIO_WIO_TERMINAL
+      </RTE_Components_h>
+      <files>
+        <file category="sourceC" name="Board/vio_wio_terminal.c"/>
+      </files>
+    </component>
+
+    <!-- Board Support: pin map and GPIO helpers (header Board/Include/wio_terminal.h) -->
+    <component Cclass="Board Support" Cgroup="GPIO" Cversion="1.0.0" condition="Wio-Terminal Startup">
+      <description>Pin map of the Wio Terminal peripherals and inline GPIO helpers</description>
+      <RTE_Components_h>
+        #define RTE_WIO_TERMINAL_GPIO
+      </RTE_Components_h>
+      <files>
+        <file category="header" name="Board/Include/wio_terminal.h"/>
+      </files>
+    </component>
+  </components>
+
+  <boards>
+    <board vendor="SeeedStudio" name="Wio-Terminal"
+           salesContact="https://www.seeedstudio.com/contacts"
+           orderForm="https://www.seeedstudio.com/Wio-Terminal-p-4509.html">
+      <description>Seeed Studio Wio Terminal: ATSAMD51P19A (Cortex-M4F, 512 KB Flash, 192 KB RAM), 2.4" LCD, RTL8720DN</description>
+      <book category="overview"  name="https://wiki.seeedstudio.com/Wio_Terminal_Intro/"                    title="Wio Terminal Overview"/>
+      <book category="manual"    name="https://wiki.seeedstudio.com/Wio-Terminal-Getting-Started/"         title="Wio Terminal Getting Started"/>
+      <book category="schematic" name="https://raw.githubusercontent.com/Seeed-Studio/OSHW-WioTerminal/main/01%20Schematic%20Diagrams%20(PDF)/Schematic_Diagrams-WioTerminal.pdf" title="Wio Terminal Schematic"/>
+      <book category="schematic" name="https://github.com/Seeed-Studio/OSHW-WioTerminal"                   title="Wio Terminal Open Source Hardware Files (Schematic, Gerber, BOM)"/>
+      <book category="other"     name="https://files.seeedstudio.com/wiki/Wio-Terminal/img/WioT-Pinout.jpg" title="Wio Terminal Pinout"/>
+      <book category="manual"    name="https://wiki.seeedstudio.com/Software-SWD/"                         title="SWD Debugging (SWD pads of the Wio Terminal)"/>
+      <book category="manual"    name="https://ww1.microchip.com/downloads/aemDocuments/documents/MCU32/ProductDocuments/DataSheets/SAM-D5x-E5x-Family-Data-Sheet-DS60001507.pdf" title="SAM D5x/E5x Family Data Sheet"/>
+      <book category="other"     name="https://www.st.com/resource/en/datasheet/lis3dh.pdf"                title="LIS3DH Accelerometer Datasheet"/>
+      <book category="other"     name="Documents/OVERVIEW.md"                                              title="Guide"/>
+      <mountedDevice    deviceIndex="0" Dvendor="Microchip:3" Dname="ATSAMD51P19A"/>
+      <mountedPart n="1" Hvendor="Realtek"            Hname="RTL8720DN"  Hvariant="RTL8720DN-VA1-CG"/>
+      <mountedPart n="1" Hvendor="Winbond"            Hname="W25Q32JV"   Hvariant="W25Q32JVSSIQ"/>
+      <mountedPart n="1" Hvendor="STMicroelectronics" Hname="LIS3DH"     Hvariant="LIS3DHTR"/>
+      <mountedPart n="1" Hvendor="GigaDevice"         Hname="GD25Q16C"   Hvariant="GD25Q16CEIGR"/>
+      <mountedPart n="1" Hvendor="Diodes"             Hname="AP2112K"    Hvariant="AP2112K-3.3TRG1"/>
+      <mountedPart n="1" Hvendor="MPS"                Hname="MP2161"     Hvariant="MP2161GJ"/>
+      <feature type="XTAL"          n="32768"     name="32.768 kHz crystal"/>
+      <feature type="PWR"           n="5"         name="USB Type-C powered"/>
+      <feature type="USB"           n="1"         name="USB Type-C, native USB of the ATSAMD51 (device and host)"/>
+      <feature type="LCD"           n="1"         m="320.240" name="2.4 inch TFT LCD 320x240, ILI9341 controller on SPI (SERCOM7)"/>
+      <feature type="LED"           n="1"         name="Blue user LED"/>
+      <feature type="Button"        n="3"         name="User buttons A, B, C"/>
+      <feature type="Joystick"      n="1"         name="5-way switch"/>
+      <feature type="ContOther"     n="1"         name="Power, reset and boot-loader slide switch"/>
+      <feature type="Accelerometer" n="1"         name="LIS3DH 3-axis accelerometer (I2C, SERCOM4)"/>
+      <feature type="LightSens"     n="1"         name="Light sensor (analog)"/>
+      <feature type="MIC"           n="1"         name="Microphone (analog)"/>
+      <feature type="Speaker"       n="1"         name="Buzzer (PWM)"/>
+      <feature type="Other"         n="1"         name="Infrared emitter 940 nm"/>
+      <feature type="Other"         n="1"         name="Realtek RTL8720DN dual-band Wi-Fi and Bluetooth 5.0 module (UART, SPI)"/>
+      <feature type="MemoryOther"   n="4194304"   name="4 MB QSPI NOR Flash W25Q32JV"/>
+      <feature type="MemCard"       n="1"         name="microSD card slot (SPI, SERCOM6)"/>
+      <feature type="ConnOther"     n="2"         name="Grove connectors (I2C, digital/analog)"/>
+      <feature type="ConnOther"     n="1"         name="40-pin Raspberry Pi compatible header"/>
+      <feature type="ConnOther"     n="1"         name="SWD test pads (SWCLK, SWDIO, RESET, 3V3, GND)"/>
+      <debugInterface adapter="SWD" connector="Test pads on the PCB front side (SWCLK, SWDIO, RESET, 3V3, GND)"/>
+      <memory name="QSPI_FLASH" start="0x04000000" size="0x00400000" access="rx"/>
+      <algorithm name="Flash/SAMD51_512_8KB.FLM" start="0x00000000" size="0x00080000" RAMstart="0x20000000" RAMsize="0x00030000" default="1"/>
+    </board>
+  </boards>
+
+  <examples>
+    <example name="Blinky" folder="Examples/Blinky" doc="README.md">
+      <description>Blinky example with CMSIS-Driver VIO (user LED, buttons, 5-way switch), linked behind the UF2 boot loader</description>
+      <board name="Wio-Terminal" vendor="SeeedStudio"/>
+      <project>
+        <environment name="csolution" load="Blinky.csolution.yml"/>
+      </project>
+      <attributes>
+        <category>Getting Started</category>
+        <component Cclass="CMSIS" Cgroup="CORE"/>
+        <component Cclass="Device" Cgroup="Startup"/>
+        <component Cclass="CMSIS Driver" Cgroup="VIO"/>
+      </attributes>
+    </example>
+  </examples>
+</package>
