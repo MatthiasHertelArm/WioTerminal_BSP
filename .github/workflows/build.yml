@@ -83,6 +83,8 @@ jobs:
           # cpackget installs a pack read-only and cp -a keeps that mode; a copied example is writable.
           chmod -R u+w "${copied_example}"
           cbuild "${copied_example}/HardwareTest.csolution.yml" --packs --update-rte --toolchain GCC
+          # out/*.cbuild-run.yml is only written for an active target-set, as the VS Code tasks select it.
+          cbuild "${copied_example}/HardwareTest.csolution.yml" --active Wio-Terminal --packs --toolchain GCC
 
           # Run only the hook metadata resolver, with a mock session. No pyOCD,
           # probe, board connection, or flash operation is invoked by this check.
