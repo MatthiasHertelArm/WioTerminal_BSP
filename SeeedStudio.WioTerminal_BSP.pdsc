@@ -3,7 +3,7 @@
   <name>WioTerminal_BSP</name>
   <vendor>SeeedStudio</vendor>
   <description overview="Documents/OVERVIEW.md">Seeed Studio Wio Terminal Board Support Pack (Microchip ATSAMD51P19A)</description>
-  <url>https://github.com/MatthiasHertelArm/WioTerminal_BSP/releases/download/v0.1.0/</url>
+  <url>https://github.com/MatthiasHertelArm/WioTerminal_BSP/releases/download/v0.1.1/</url>
   <repository type="git">https://github.com/MatthiasHertelArm/WioTerminal_BSP.git</repository>
   <license>LICENSE</license>
   <licenseSets>
@@ -15,7 +15,11 @@
   </licenseSets>
 
   <releases>
-    <release version="0.1.0" date="2026-11-26">
+    <release version="0.1.1" date="2026-11-26">
+      - Examples: pyocd_user.py gives pyOCD the access port list of the ATSAMD51, so that it no longer logs
+        "Error probing AP#2" to "AP#4" (FAULT ACK) at every connect
+    </release>
+    <release version="0.1.0" date="2026-11-26" url="https://github.com/MatthiasHertelArm/WioTerminal_BSP/releases/download/v0.1.0/SeeedStudio.WioTerminal_BSP.0.1.0.pack">
       Initial release.
       - Board description for the Seeed Studio Wio Terminal (mounted ATSAMD51P19A, SWD test pads, on-board parts,
         features, documentation links)

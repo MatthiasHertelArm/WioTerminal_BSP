@@ -150,4 +150,7 @@ The other sequences keep their defaults: `ResetSystem` (SYSRESETREQ) halted at t
   run: the test device is not protected.
 - `ResetHardwareAssert` / `ResetHardwareDeassert` (connect under reset) keep their defaults and were not tried.
 - pyOCD probes AP#2..AP#4 at every connect and logs `Error probing AP#n ... FAULT ACK`; the device has two APs.
-  Describing them with `<accessportV1>` in the DFP may silence this; not tried.
+  Describing them with `<accessportV1>` in the DFP does not silence this with pyOCD 0.46.1: its source skips the
+  scan only for a given AP list and takes none from the `debug-topology` of `*.cbuild-run.yml` (read in the
+  source, not tried on the board). `pyocd_user.py` of the examples sets the list (`target.dp.valid_aps = [0, 1]`);
+  with it the three lines were gone and `main` was reached (2026-11-26, HardwareTest, CMSIS-DAP probe).

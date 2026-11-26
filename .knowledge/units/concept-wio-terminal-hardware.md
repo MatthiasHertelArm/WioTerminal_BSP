@@ -29,8 +29,9 @@ license: Apache-2.0
 
 - No on-board probe. SWD test pads SWCLK, SWDIO, RESET, 3V3 and GND on the front side of the PCB (casing removed;
   Seeed lists SWCLK, SWDIO and GND, Zephyr also RESET and 3V3). Tested with a ULINKplus at 2 MHz.
-- The DAP has two AHB-APs (AP#0 system bus with ROM table at 0x41003000, AP#1); pyOCD logs
-  `Error probing AP#2..#4 ... FAULT ACK` at every connect, which is harmless.
+- The DAP has two AHB-APs (AP#0 system bus with ROM table at 0x41003000, AP#1). A read of an absent AP answers
+  FAULT, so pyOCD's AP scan logs `Error probing AP#2..#4 ... FAULT ACK` at every connect; this is harmless.
+  `pyocd_user.py` of the examples gives pyOCD the AP list (`will_init_target`), which replaces the scan.
 - DSU external registers: CTRL 0x41002100, STATUSA 0x41002101 (CRSTEXT bit 1), STATUSB 0x41002102 (PROT bit 0,
   DBGPRES bit 1, HPE bit 4); read 0x00, 0x00, 0x12 on the running board.
 

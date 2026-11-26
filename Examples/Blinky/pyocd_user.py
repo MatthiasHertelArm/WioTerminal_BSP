@@ -40,6 +40,13 @@ def _board_algorithms():
     return algorithms
 
 
+def will_init_target(target, init_sequence):
+    # The SAM D5x/E5x has two access ports and answers a read of an absent one with FAULT. pyOCD scans for
+    # access ports until three in a row are invalid and logs 'Error probing AP#2', AP#3 and AP#4 at every
+    # connect. A given list replaces the scan; pyOCD 0.46 takes none from the debug-topology of *.cbuild-run.yml.
+    target.dp.valid_aps = [0, 1]
+
+
 def will_connect():
     for start, end, algorithm in _board_algorithms():
         for region in target.memory_map.iter_matching_regions(type=MemoryType.FLASH):
