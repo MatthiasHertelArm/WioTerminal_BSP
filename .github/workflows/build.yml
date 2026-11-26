@@ -80,6 +80,8 @@ jobs:
           installed_pack="${CMSIS_PACK_ROOT}/SeeedStudio/WioTerminal_BSP/${pack_version}"
           copied_example="$(mktemp -d "${RUNNER_TEMP}/wio-terminal-installed-example.XXXXXX")"
           cp -a "${installed_pack}/Examples/HardwareTest/." "${copied_example}/"
+          # cpackget installs a pack read-only and cp -a keeps that mode; a copied example is writable.
+          chmod -R u+w "${copied_example}"
           cbuild "${copied_example}/HardwareTest.csolution.yml" --packs --update-rte --toolchain GCC
 
           # Run only the hook metadata resolver, with a mock session. No pyOCD,
