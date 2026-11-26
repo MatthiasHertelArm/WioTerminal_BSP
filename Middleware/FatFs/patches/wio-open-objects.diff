@@ -1,0 +1,38 @@
+--- a/ff.c
++++ b/ff.c
+@@ -473,6 +473,21 @@
+ 
+ #if FF_FS_LOCK
+ static FILESEM Files[FF_FS_LOCK];	/* Open object lock semaphores */
++
++/* Wio integration: read-only lock query; serialize with all FatFs calls.
++ * Root-directory handles have no upstream lock entry and are not counted.
++ * This does not clear locks, flush data, or invalidate any object.
++ */
++UINT wio_fatfs_open_objects (const FATFS* fs)
++{
++	UINT i, count = 0;
++
++	if (!fs) return 0;
++	for (i = 0; i < FF_FS_LOCK; i++) {
++		if (Files[i].fs == fs && Files[i].ctr) count++;
++	}
++	return count;
++}
+ #if FF_FS_REENTRANT
+ static volatile BYTE SysLock;		/* System lock flag to protect Files[] (0:no mutex, 1:unlocked, 2:locked) */
+ static volatile BYTE SysLockVolume;	/* Volume id who is locking Files[] */
+--- a/ff.h
++++ b/ff.h
+@@ -355,6 +355,11 @@
+ int f_printf (FIL* fp, const TCHAR* str, ...);						/* Put a formatted string to the file */
+ TCHAR* f_gets (TCHAR* buff, int len, FIL* fp);						/* Get a string from the file */
+ 
++/* Wio integration: read-only query of open file/non-root-directory entries. */
++#if FF_FS_LOCK
++UINT wio_fatfs_open_objects (const FATFS* fs);
++#endif
++
+ /* Some API fucntions are implemented as macro */
+ 
+ #define f_eof(fp) ((int)((fp)->fptr == (fp)->obj.objsize))

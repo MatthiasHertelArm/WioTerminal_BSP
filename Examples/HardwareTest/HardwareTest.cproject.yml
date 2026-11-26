@@ -1,0 +1,36 @@
+project:
+  language-C: c11
+  misc:
+    - for-compiler: GCC
+      Link:
+        - --specs=nosys.specs
+        - -Wl,--defsym=STACK_SIZE=4096
+  components:
+    - component: CMSIS:CORE
+    - component: Device:Startup
+    - component: Board Support:GPIO
+    - component: Board Support:SDK:Core
+    - component: CMSIS Driver:VIO:Board
+    - component: CMSIS Driver:I2C:Wio
+    - component: CMSIS Driver:SPI:Wio
+    - component: CMSIS Driver:USART:Wio
+    - component: CMSIS Driver:Flash:Wio
+    - component: Board Support:SDK:Sensors
+    - component: Board Support:SDK:Display
+    - component: Board Support:SDK:Storage
+    - component: Board Support:SDK:Network
+  groups:
+    - group: Application
+      files:
+        - file: HardwareTest.c
+        - file: HardwareTest.h
+    - group: Documentation
+      files:
+        - file: README.md
+  rte:
+    base-dir: RTE/$Compiler$
+  output:
+    type:
+      - elf
+      - hex
+      - map

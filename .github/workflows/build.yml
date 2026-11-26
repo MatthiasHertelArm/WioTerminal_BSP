@@ -17,7 +17,7 @@ env:
 
 jobs:
   build:
-    name: Build Blinky (GCC)
+    name: Build Blinky and HardwareTest (GCC)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -45,6 +45,7 @@ jobs:
         run: >-
           python3 -m pip install
           "git+https://github.com/MatthiasHertelArm/cmsis-developer-assistant-tools.git@e1150bd7164d523e5549913caddd68959afd3be7"
+          "PyYAML>=6.0,<7"
 
       - name: Generate the pack
         run: ./gen_pack.sh
@@ -52,13 +53,62 @@ jobs:
       - name: Install the generated pack
         run: cpackget add --pack-root "${CMSIS_PACK_ROOT}" --agree-embedded-license output/SeeedStudio.WioTerminal_BSP.*.pack
 
+      - name: Build and run native SDK regression tests
+        run: |
+          cmake -S Tests -B build/host-tests -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_BUILD_TYPE=Debug -DWIO_TEST_SANITIZERS=ON
+          cmake --build build/host-tests
+          ctest --test-dir build/host-tests --output-on-failure
+
       - name: Build Blinky
         run: cbuild Examples/Blinky/Blinky.csolution.yml --packs --update-rte --toolchain GCC
+
+      - name: Build HardwareTest from the source pack
+        run: cbuild Examples/HardwareTest/HardwareTest.csolution.yml --packs --update-rte --toolchain GCC
+
+      - name: Build a copied HardwareTest from the installed pack
+        shell: bash
+        run: |
+          shopt -s nullglob
+          pack_archives=(output/SeeedStudio.WioTerminal_BSP.*.pack)
+          if [[ ${#pack_archives[@]} -ne 1 ]]; then
+            printf '%s\n' 'Expected exactly one generated BSP archive' >&2
+            exit 1
+          fi
+          pack_name="${pack_archives[0]##*/}"
+          pack_version="${pack_name#SeeedStudio.WioTerminal_BSP.}"
+          pack_version="${pack_version%.pack}"
+          installed_pack="${CMSIS_PACK_ROOT}/SeeedStudio/WioTerminal_BSP/${pack_version}"
+          copied_example="$(mktemp -d "${RUNNER_TEMP}/wio-terminal-installed-example.XXXXXX")"
+          cp -a "${installed_pack}/Examples/HardwareTest/." "${copied_example}/"
+          cbuild "${copied_example}/HardwareTest.csolution.yml" --packs --update-rte --toolchain GCC
+
+          # Run only the hook metadata resolver, with a mock session. No pyOCD,
+          # probe, board connection, or flash operation is invoked by this check.
+          python3 - "${copied_example}" "${installed_pack}" <<'PY'
+          import os
+          import runpy
+          import sys
+          from types import SimpleNamespace
+
+          example, pack = sys.argv[1:]
+          cbuild_run = os.path.join(example, "out", "HardwareTest+Wio-Terminal.cbuild-run.yml")
+          hook = runpy.run_path(
+              os.path.join(example, "pyocd_user.py"),
+              init_globals={"session": SimpleNamespace(options={"cbuild_run": cbuild_run})},
+          )
+          expected = (0, 0x80000, os.path.realpath(os.path.join(pack, "Flash", "SAMD51_512_8KB.FLM")))
+          assert os.path.isfile(expected[2]), "Pack is missing its safe flash algorithm"
+          assert expected in hook["_board_algorithms"](), "Copied example did not resolve the installed BSP flash algorithm"
+          print("Installed-pack flash fallback:", expected[2])
+          PY
 
       - name: Upload images
         uses: actions/upload-artifact@v4
         with:
           name: wio-terminal-examples
+          if-no-files-found: error
           path: |
             Examples/Blinky/out/Blinky/Wio-Terminal/*/Blinky.hex
             Examples/Blinky/out/Blinky/Wio-Terminal/*/Blinky.elf
+            Examples/HardwareTest/out/HardwareTest/Wio-Terminal/*/HardwareTest.hex
+            Examples/HardwareTest/out/HardwareTest/Wio-Terminal/*/HardwareTest.elf

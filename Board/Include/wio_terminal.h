@@ -113,6 +113,12 @@ extern "C" {
 #define WIO_PIN_RTL_SPI_SCK     WIO_PIN(WIO_PORT_B, 25)   /* SERCOM0 PAD[1]                   */
 #define WIO_PIN_RTL_SPI_MISO    WIO_PIN(WIO_PORT_C, 24)   /* SERCOM0 PAD[2]                   */
 #define WIO_PIN_RTL_SPI_CS      WIO_PIN(WIO_PORT_C, 25)   /* SERCOM0 PAD[3]                   */
+/* Seeed eRPC uses these same pads as SERCOM0 UART, not the SERCOM1 loader UART.
+ * ArduinoCore-samd 2e6b174f81b988964ce3811f5b5e39297c2c9c3f variant pins 84/85;
+ * rpcUnified f0570f481d6f65c2e86c147f36d2b994d7bea645: RX pad2, TX pad0.
+ */
+#define WIO_PIN_RTL_ERPC_TX     WIO_PIN_RTL_SPI_MOSI
+#define WIO_PIN_RTL_ERPC_RX     WIO_PIN_RTL_SPI_MISO
 #define WIO_PIN_RTL_CHIP_PU     WIO_PIN(WIO_PORT_A, 18)   /* Chip enable                      */
 #define WIO_PIN_RTL_SYNC        WIO_PIN(WIO_PORT_A, 19)   /* RTL8720DN PA13 / SPI sync        */
 #define WIO_PIN_RTL_IRQ         WIO_PIN(WIO_PORT_C, 20)   /* RTL8720DN PA12 / SPI interrupt   */

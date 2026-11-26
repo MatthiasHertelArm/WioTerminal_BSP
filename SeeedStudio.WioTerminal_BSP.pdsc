@@ -9,11 +9,13 @@
   <licenseSets>
     <licenseSet id="all" default="true" gating="true">
       <license title="Apache-2.0 License" name="LICENSE" spdx="Apache-2.0"/>
+      <license title="FatFs license" name="Middleware/FatFs/LICENSE.txt"/>
+      <license title="SD implementation third-party notices" name="Middleware/FatFs/SD_NOTICES.txt"/>
     </licenseSet>
   </licenseSets>
 
   <releases>
-    <release version="0.1.0" date="2026-10-28">
+    <release version="0.1.0" date="2026-11-26">
       Initial release.
       - Board description for the Seeed Studio Wio Terminal (mounted ATSAMD51P19A, SWD test pads, on-board parts,
         features, documentation links)
@@ -22,6 +24,8 @@
       - CMSIS-Driver VIO for the user LED, the buttons A, B, C and the 5-way switch
       - Board Support GPIO: pin map of the on-board peripherals and GPIO helpers
       - Example: Blinky (VIO) linked behind the boot loader at 0x00004000, csolution project for Arm Compiler 6 and GCC
+      - Bare-metal SDK, CMSIS I2C/SPI/USART/read-only Flash drivers, and HardwareTest
+      - Optional microSD/FatFs storage and RTL8720DN eRPC IPv4 networking
     </release>
   </releases>
 
@@ -54,9 +58,109 @@
       <require Dvendor="Microchip:3" Dname="ATSAMD51P19A"/>
       <require Cclass="Device" Cgroup="Startup"/>
     </condition>
+    <condition id="Wio-Terminal SDK Core">
+      <require condition="Wio-Terminal Startup"/>
+      <require Cclass="CMSIS" Cgroup="CORE"/>
+      <require Cclass="Board Support" Cgroup="GPIO"/>
+    </condition>
+    <condition id="Wio-Terminal SDK Driver">
+      <require condition="Wio-Terminal SDK Core"/>
+      <require Cclass="Board Support" Cgroup="SDK" Csub="Core"/>
+    </condition>
+    <condition id="Wio-Terminal SDK Sensors">
+      <require condition="Wio-Terminal SDK Driver"/>
+      <require Cclass="CMSIS Driver" Cgroup="I2C" Csub="Wio"/>
+    </condition>
+    <condition id="Wio-Terminal SDK Display">
+      <require condition="Wio-Terminal SDK Driver"/>
+      <require Cclass="CMSIS Driver" Cgroup="SPI" Csub="Wio"/>
+    </condition>
+    <condition id="Wio-Terminal SDK Storage">
+      <require condition="Wio-Terminal SDK Driver"/>
+      <require Cclass="CMSIS Driver" Cgroup="SPI" Csub="Wio"/>
+    </condition>
+    <condition id="Wio-Terminal SDK Network">
+      <require condition="Wio-Terminal SDK Driver"/>
+      <require Cclass="CMSIS Driver" Cgroup="USART" Csub="Wio"/>
+    </condition>
   </conditions>
 
   <components>
+    <component Cclass="Board Support" Cgroup="SDK" Csub="Storage" Cversion="1.0.0" condition="Wio-Terminal SDK Storage">
+      <description>microSD SPI blocks and FatFs R0.16 FAT12/16/32 filesystem; read-only by default, explicit write opt-in, no formatting</description>
+      <files>
+        <file category="header" name="Board/Include/wio_sd.h"/>
+        <file category="header" name="Board/Include/wio_fs.h"/>
+        <file category="header" name="Middleware/FatFs/ff.h"/>
+        <file category="header" name="Middleware/FatFs/ffconf.h"/>
+        <file category="header" name="Middleware/FatFs/diskio.h"/>
+        <file category="sourceC" name="Board/SDK/wio_sd.c"/>
+        <file category="sourceC" name="Board/SDK/wio_fs.c"/>
+        <file category="sourceC" name="Middleware/FatFs/ff.c"/>
+      </files>
+    </component>
+    <component Cclass="Board Support" Cgroup="SDK" Csub="Network" Cversion="1.0.0" condition="Wio-Terminal SDK Network">
+      <description>Bounded bare-metal RTL8720DN eRPC firmware 2.1.3 client: explicit station join, DHCP/DNS, IPv4 TCP clients and UDP; no TLS/BLE</description>
+      <files>
+        <file category="header" name="Board/Include/wio_network.h"/>
+        <file category="header" name="Board/Include/wio_network_port.h"/>
+        <file category="sourceC" name="Board/SDK/wio_network.c"/>
+        <file category="sourceC" name="Board/SDK/wio_network_uart.c"/>
+      </files>
+    </component>
+    <component Cclass="CMSIS Driver" Cgroup="Flash" Csub="Wio" Cversion="1.0.0" Capiversion="2.2.0" condition="Wio-Terminal SDK Driver">
+      <description>READ-ONLY Driver_Flash0 for the 4 MB W25Q32JV: JEDEC ID, status and reads over single-lane GPIO SPI; no erase/program or XIP</description>
+      <files>
+        <file category="header" name="Board/Include/wio_flash.h"/>
+        <file category="sourceC" name="Board/Drivers/Driver_Flash_Wio.c"/>
+      </files>
+    </component>
+    <component Cclass="CMSIS Driver" Cgroup="USART" Csub="Wio" Cversion="1.0.0" Capiversion="2.4.0" condition="Wio-Terminal SDK Driver">
+      <description>Interrupt-driven asynchronous 8N1 UART: USART0 (RTL8720DN eRPC), USART1 (module loader/log), USART2 (header)</description>
+      <files>
+        <file category="sourceC" name="Board/Drivers/Driver_USART_Wio.c"/>
+      </files>
+    </component>
+    <component Cclass="Board Support" Cgroup="SDK" Csub="Sensors" Cversion="1.0.0" condition="Wio-Terminal SDK Sensors">
+      <description>LIS3DH accelerometer, calibrated raw light and microphone ADC, synchronous CMSIS-I2C helpers</description>
+      <files>
+        <file category="header" name="Board/Include/wio_i2c.h"/>
+        <file category="header" name="Board/Include/wio_adc.h"/>
+        <file category="header" name="Board/Include/lis3dh.h"/>
+        <file category="sourceC" name="Board/SDK/wio_i2c.c"/>
+        <file category="sourceC" name="Board/SDK/wio_adc.c"/>
+        <file category="sourceC" name="Board/SDK/lis3dh.c"/>
+      </files>
+    </component>
+    <component Cclass="Board Support" Cgroup="SDK" Csub="Display" Cversion="1.0.0" condition="Wio-Terminal SDK Display">
+      <description>ILI9341 LCD initialization, RGB565 rectangles and diagnostic ID over CMSIS SPI7; no framebuffer required</description>
+      <files>
+        <file category="header" name="Board/Include/wio_lcd.h"/>
+        <file category="sourceC" name="Board/SDK/wio_lcd.c"/>
+      </files>
+    </component>
+    <component Cclass="Board Support" Cgroup="SDK" Csub="Core" Cversion="1.0.0" condition="Wio-Terminal SDK Core">
+      <description>Bare-metal 48 MHz timebase, bounded delays and peripheral clock services; no external power rails enabled</description>
+      <files>
+        <file category="header" name="Board/Include/wio_sdk.h"/>
+        <file category="header" name="Board/Include/wio_drivers.h"/>
+        <file category="header" name="Board/Include/wio_sercom.h"/>
+        <file category="sourceC" name="Board/SDK/wio_sdk.c"/>
+        <file category="sourceC" name="Board/Drivers/wio_sercom0.c"/>
+      </files>
+    </component>
+    <component Cclass="CMSIS Driver" Cgroup="I2C" Csub="Wio" Cversion="1.0.0" Capiversion="2.4.0" condition="Wio-Terminal SDK Driver">
+      <description>Interrupt-driven I2C masters: Driver_I2C4 (LIS3DH) and Driver_I2C3 (Grove); 7-bit, 100/400 kHz, repeated START</description>
+      <files>
+        <file category="sourceC" name="Board/Drivers/Driver_I2C_Wio.c"/>
+      </files>
+    </component>
+    <component Cclass="CMSIS Driver" Cgroup="SPI" Csub="Wio" Cversion="1.0.0" Capiversion="2.3.0" condition="Wio-Terminal SDK Driver">
+      <description>Interrupt-driven 8-bit SPI masters: Driver_SPI7 (LCD), SPI6 (SD), SPI5 (header), SPI0 (RTL8720DN transport)</description>
+      <files>
+        <file category="sourceC" name="Board/Drivers/Driver_SPI_Wio.c"/>
+      </files>
+    </component>
     <!-- CMSIS-Driver VIO for the Wio Terminal -->
     <component Cclass="CMSIS Driver" Cgroup="VIO" Csub="Board" Cversion="1.0.0" Capiversion="1.0.0" condition="Wio-Terminal Startup">
       <description>Virtual I/O for the Wio Terminal: user LED (vioLED0), buttons A, B, C (vioBUTTON0..2), 5-way switch (vioJOY*)</description>
@@ -128,6 +232,18 @@
   </boards>
 
   <examples>
+    <example name="HardwareTest" folder="Examples/HardwareTest" doc="README.md">
+      <description>Non-destructive board tests, CMSIS-Driver checks and debugger-readable results; linked behind the UF2 boot loader</description>
+      <board name="Wio-Terminal" vendor="SeeedStudio"/>
+      <project>
+        <environment name="csolution" load="HardwareTest.csolution.yml"/>
+      </project>
+      <attributes>
+        <category>Hardware Test</category>
+        <component Cclass="CMSIS" Cgroup="CORE"/>
+        <component Cclass="Device" Cgroup="Startup"/>
+      </attributes>
+    </example>
     <example name="Blinky" folder="Examples/Blinky" doc="README.md">
       <description>Blinky example with CMSIS-Driver VIO (user LED, buttons, 5-way switch), linked behind the UF2 boot loader</description>
       <board name="Wio-Terminal" vendor="SeeedStudio"/>

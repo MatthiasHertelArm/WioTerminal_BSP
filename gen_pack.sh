@@ -6,6 +6,10 @@
 
 set -o pipefail
 
+# Keep the source-file guard independent of the gen-pack library working directory.
+WIO_PACK_SOURCE_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)" || exit 1
+readonly WIO_PACK_SOURCE_DIR
+
 # Set version of gen pack library
 # For available versions see https://github.com/Open-CMSIS-Pack/gen-pack/tags.
 # Use the tag name without the prefix "v", e.g., 0.7.0
@@ -33,6 +37,8 @@ PACK_DIRS="
   Documents
   Examples
   Flash
+  Middleware
+  Tests
   .knowledge
 "
 
@@ -59,6 +65,18 @@ PACK_DELETE_FILES="
   Examples/Blinky/*.cbuild.yml
   Examples/Blinky/RTE/AC6/_*
   Examples/Blinky/RTE/GCC/_*
+  Examples/HardwareTest/out
+  Examples/HardwareTest/tmp
+  Examples/HardwareTest/.cmsis
+  Examples/HardwareTest/.vscode
+  Examples/HardwareTest/.clangd
+  Examples/HardwareTest/*.cbuild-idx.yml
+  Examples/HardwareTest/*.cbuild-pack.yml
+  Examples/HardwareTest/*.cbuild-set.yml
+  Examples/HardwareTest/*.cbuild-run.yml
+  Examples/HardwareTest/*.cbuild.yml
+  Examples/HardwareTest/RTE/AC6/_*
+  Examples/HardwareTest/RTE/GCC/_*
 "
 
 # Specify patches to be applied
@@ -125,10 +143,60 @@ function preprocess() {
 # usage: postprocess <build>
 #   <build>  The build folder
 #
+function portable_hardware_test_solution() {
+  # Filter stdin to stdout so this transformation can be checked without a
+  # pack build. Match the BSP entry, not unrelated packs or arbitrary paths.
+  awk '
+    /^[[:space:]]*# Build this checkout, including its local drivers and safe flash algorithm\.[[:space:]]*$/ { next }
+    {
+      if ($0 ~ /^[[:space:]]*-[[:space:]]+pack:/) {
+        bsp = $0 ~ /^[[:space:]]*-[[:space:]]+pack:[[:space:]]*SeeedStudio::WioTerminal_BSP(@[^[:space:]#]+)?[[:space:]]*(#.*)?$/
+        if (bsp) {
+          entries++
+          indent = match($0, /[^[:space:]]/) - 1
+        }
+      } else if (bsp && $0 !~ /^[[:space:]]*($|#)/ &&
+                 match($0, /[^[:space:]]/) - 1 <= indent) {
+        bsp = 0
+      }
+      if (bsp && $0 ~ /^[[:space:]]*path:/) {
+        if ($0 !~ /^[[:space:]]*path:[[:space:]]*\.\.\/\.\.[[:space:]]*(#.*)?$/) {
+          print "Unexpected HardwareTest BSP path; refusing to package" > "/dev/stderr"
+          failed = 1
+          exit 1
+        }
+        removed++
+        next
+      }
+      print
+    }
+    END {
+      if (!failed && (entries != 1 || removed != 1)) {
+        print "Expected exactly one HardwareTest BSP local-path override" > "/dev/stderr"
+        exit 1
+      }
+    }
+  '
+}
+
 function postprocess() {
-  # add custom steps here to be executed
-  # after populating the pack build folder
-  # but before archiving the pack into output folder
+  # Source-tree builds use the local BSP. A copied pack example must instead
+  # resolve the installed BSP, independently of its destination directory.
+  local solution="${1:?Missing pack build folder}/Examples/HardwareTest/HardwareTest.csolution.yml"
+  local source_solution="${WIO_PACK_SOURCE_DIR}/Examples/HardwareTest/HardwareTest.csolution.yml"
+  local temporary_solution
+
+  if [[ ! -f "${source_solution}" || ! -f "${solution}" || "${solution}" -ef "${source_solution}" ]]; then
+    printf '%s\n' "Refusing to transform a missing or source HardwareTest solution" >&2
+    exit 1
+  fi
+  temporary_solution="$(mktemp "${solution}.XXXXXX")" || exit 1
+  if ! portable_hardware_test_solution < "${solution}" > "${temporary_solution}"; then
+    rm -f -- "${temporary_solution}"
+    exit 1
+  fi
+  chmod 0644 "${temporary_solution}" || exit 1
+  mv -- "${temporary_solution}" "${solution}" || exit 1
   return 0
 }
 

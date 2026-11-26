@@ -1,0 +1,32 @@
+solution:
+  created-for: CMSIS-Toolbox@2.12.0
+  compiler: GCC
+  packs:
+    # Build this checkout, including its local drivers and safe flash algorithm.
+    - pack: SeeedStudio::WioTerminal_BSP
+      path: ../..
+    - pack: Microchip::SAMD51_DFP@3.9.276
+    - pack: ARM::CMSIS@^6.0.0
+  target-types:
+    - type: Wio-Terminal
+      board: SeeedStudio::Wio-Terminal
+      target-set:
+        - set:
+          debugger:
+            name: CMSIS-DAP@pyOCD
+            protocol: swd
+            # Conservative SWD clock for reliable board/probe bring-up.
+            clock: 400000
+            reset:
+              - type: system
+          images:
+            - project-context: HardwareTest.Debug
+  build-types:
+    - type: Debug
+      debug: on
+      optimize: debug
+    - type: Release
+      debug: off
+      optimize: balanced
+  projects:
+    - project: HardwareTest.cproject.yml
